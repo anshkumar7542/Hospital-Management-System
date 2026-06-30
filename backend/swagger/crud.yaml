@@ -1,0 +1,644 @@
+components:
+  parameters:
+    Page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: Page number.
+    Limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Page size.
+    Search:
+      in: query
+      name: search
+      schema:
+        type: string
+      description: Full-text search across configured searchable fields.
+    SortBy:
+      in: query
+      name: sortBy
+      schema:
+        type: string
+        default: id
+      description: Whitelisted column to sort by.
+    SortOrder:
+      in: query
+      name: sortOrder
+      schema:
+        type: string
+        enum: [asc, desc, ASC, DESC]
+        default: DESC
+      description: Sort direction.
+    Id:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+  schemas:
+    ApiSuccess:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+        data:
+          nullable: true
+        meta:
+          type: object
+          nullable: true
+          properties:
+            page:
+              type: integer
+            limit:
+              type: integer
+            total:
+              type: integer
+            totalPages:
+              type: integer
+    ApiError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+    DepartmentInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive]
+    DoctorInput:
+      type: object
+      required: [user_id, department_id, license_number, specialization]
+      properties:
+        user_id:
+          type: integer
+        department_id:
+          type: integer
+        license_number:
+          type: string
+        specialization:
+          type: string
+        qualification:
+          type: string
+        consultation_fee:
+          type: number
+        availability_status:
+          type: string
+          enum: [available, unavailable, on_leave]
+    PatientInput:
+      type: object
+      required: [patient_code, full_name, gender, date_of_birth, phone]
+      properties:
+        patient_code:
+          type: string
+        full_name:
+          type: string
+        gender:
+          type: string
+          enum: [male, female, other]
+        date_of_birth:
+          type: string
+          format: date
+        blood_group:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          format: email
+        address:
+          type: string
+    AppointmentInput:
+      type: object
+      required: [patient_id, doctor_id, department_id, appointment_date, start_time, end_time]
+      properties:
+        patient_id:
+          type: integer
+        doctor_id:
+          type: integer
+        department_id:
+          type: integer
+        appointment_date:
+          type: string
+          format: date
+        start_time:
+          type: string
+          example: "10:00:00"
+        end_time:
+          type: string
+          example: "10:30:00"
+        status:
+          type: string
+          enum: [scheduled, checked_in, in_consultation, completed, cancelled, no_show]
+        reason:
+          type: string
+        notes:
+          type: string
+    MedicalRecordInput:
+      type: object
+      required: [patient_id, diagnosis]
+      properties:
+        patient_id:
+          type: integer
+        doctor_id:
+          type: integer
+        appointment_id:
+          type: integer
+        diagnosis:
+          type: string
+        symptoms:
+          type: string
+        treatment_plan:
+          type: string
+        notes:
+          type: string
+    BillingInput:
+      type: object
+      required: [patient_id, invoice_number, total_amount]
+      properties:
+        patient_id:
+          type: integer
+        appointment_id:
+          type: integer
+        invoice_number:
+          type: string
+        subtotal:
+          type: number
+        tax_amount:
+          type: number
+        discount_amount:
+          type: number
+        total_amount:
+          type: number
+        paid_amount:
+          type: number
+        balance_amount:
+          type: number
+        status:
+          type: string
+          enum: [draft, issued, partially_paid, paid, cancelled, refunded]
+    PaymentInput:
+      type: object
+      required: [billing_id, amount, payment_method]
+      properties:
+        billing_id:
+          type: integer
+        amount:
+          type: number
+        payment_method:
+          type: string
+          enum: [cash, card, upi, bank_transfer, insurance]
+        transaction_reference:
+          type: string
+        status:
+          type: string
+          enum: [pending, successful, failed, refunded]
+    MedicineInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        generic_name:
+          type: string
+        category:
+          type: string
+        manufacturer:
+          type: string
+        batch_number:
+          type: string
+        unit_price:
+          type: number
+        stock_quantity:
+          type: integer
+        reorder_level:
+          type: integer
+        expiry_date:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [active, inactive, discontinued]
+    NotificationInput:
+      type: object
+      required: [user_id, title, message]
+      properties:
+        user_id:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [info, success, warning, error, appointment, billing, system]
+        is_read:
+          type: boolean
+
+paths:
+  /doctors:
+    get:
+      tags: [Doctors]
+      summary: List doctors with pagination, filtering, sorting, and search
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Doctors fetched successfully }
+    post:
+      tags: [Doctors]
+      summary: Create doctor profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DoctorInput" }
+      responses:
+        "201": { description: Doctor created successfully }
+  /doctors/{id}:
+    get:
+      tags: [Doctors]
+      summary: Get doctor by id
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Doctor fetched successfully }
+    patch:
+      tags: [Doctors]
+      summary: Update doctor
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DoctorInput" }
+      responses:
+        "200": { description: Doctor updated successfully }
+    delete:
+      tags: [Doctors]
+      summary: Delete doctor
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Doctor deleted successfully }
+
+  /patients:
+    get:
+      tags: [Patients]
+      summary: List patients with pagination, filtering, sorting, and search
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Patients fetched successfully }
+    post:
+      tags: [Patients]
+      summary: Create patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientInput" }
+      responses:
+        "201": { description: Patient created successfully }
+  /patients/{id}:
+    get:
+      tags: [Patients]
+      summary: Get patient by id
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Patient fetched successfully }
+    patch:
+      tags: [Patients]
+      summary: Update patient
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Patient updated successfully }
+    delete:
+      tags: [Patients]
+      summary: Delete patient
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Patient deleted successfully }
+
+  /appointments:
+    get:
+      tags: [Appointments]
+      summary: List appointments
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Appointments fetched successfully }
+    post:
+      tags: [Appointments]
+      summary: Create appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppointmentInput" }
+      responses:
+        "201": { description: Appointment created successfully }
+  /appointments/{id}:
+    get:
+      tags: [Appointments]
+      summary: Get appointment by id
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Appointment fetched successfully }
+    patch:
+      tags: [Appointments]
+      summary: Update appointment
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Appointment updated successfully }
+    delete:
+      tags: [Appointments]
+      summary: Delete appointment
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Appointment deleted successfully }
+
+  /departments:
+    get:
+      tags: [Departments]
+      summary: List departments
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Departments fetched successfully }
+    post:
+      tags: [Departments]
+      summary: Create department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DepartmentInput" }
+      responses:
+        "201": { description: Department created successfully }
+  /departments/{id}:
+    get:
+      tags: [Departments]
+      summary: Get department by id
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Department fetched successfully }
+    patch:
+      tags: [Departments]
+      summary: Update department
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Department updated successfully }
+    delete:
+      tags: [Departments]
+      summary: Delete department
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Department deleted successfully }
+
+  /medicines:
+    get:
+      tags: [Medicines]
+      summary: List medicines
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Medicines fetched successfully }
+    post:
+      tags: [Medicines]
+      summary: Create medicine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MedicineInput" }
+      responses:
+        "201": { description: Medicine created successfully }
+  /medicines/{id}:
+    get:
+      tags: [Medicines]
+      summary: Get medicine by id
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Medicine fetched successfully }
+    patch:
+      tags: [Medicines]
+      summary: Update medicine
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Medicine updated successfully }
+    delete:
+      tags: [Medicines]
+      summary: Delete medicine
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Medicine deleted successfully }
+
+  /medical-records:
+    get:
+      tags: [Medical Records]
+      summary: List medical records
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Medical records fetched successfully }
+    post:
+      tags: [Medical Records]
+      summary: Create medical record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MedicalRecordInput" }
+      responses:
+        "201": { description: Medical record created successfully }
+  /medical-records/{id}:
+    get:
+      tags: [Medical Records]
+      summary: Get medical record by id
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Medical record fetched successfully }
+    patch:
+      tags: [Medical Records]
+      summary: Update medical record
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Medical record updated successfully }
+    delete:
+      tags: [Medical Records]
+      summary: Delete medical record
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Medical record deleted successfully }
+
+  /billing:
+    get:
+      tags: [Billing]
+      summary: List billing records
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Billing records fetched successfully }
+    post:
+      tags: [Billing]
+      summary: Create billing record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BillingInput" }
+      responses:
+        "201": { description: Billing record created successfully }
+  /billing/{id}:
+    get:
+      tags: [Billing]
+      summary: Get billing record by id
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Billing record fetched successfully }
+    patch:
+      tags: [Billing]
+      summary: Update billing record
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Billing record updated successfully }
+    delete:
+      tags: [Billing]
+      summary: Delete billing record
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Billing record deleted successfully }
+
+  /payments:
+    get:
+      tags: [Payments]
+      summary: List payments
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Payments fetched successfully }
+    post:
+      tags: [Payments]
+      summary: Create payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentInput" }
+      responses:
+        "201": { description: Payment created successfully }
+  /payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Get payment by id
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Payment fetched successfully }
+    patch:
+      tags: [Payments]
+      summary: Update payment
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Payment updated successfully }
+    delete:
+      tags: [Payments]
+      summary: Delete payment
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Payment deleted successfully }
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Notifications fetched successfully }
+    post:
+      tags: [Notifications]
+      summary: Create notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationInput" }
+      responses:
+        "201": { description: Notification created successfully }
+  /notifications/{id}:
+    get:
+      tags: [Notifications]
+      summary: Get notification by id
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Notification fetched successfully }
+    patch:
+      tags: [Notifications]
+      summary: Update notification
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Notification updated successfully }
+    delete:
+      tags: [Notifications]
+      summary: Delete notification
+      parameters: [{ $ref: "#/components/parameters/Id" }]
+      responses:
+        "200": { description: Notification deleted successfully }

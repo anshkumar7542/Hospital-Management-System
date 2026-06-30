@@ -1,0 +1,116 @@
+components:
+  schemas:
+    ImageUpload:
+      type: object
+      properties:
+        id:
+          type: integer
+        entity_type:
+          type: string
+          enum: [user, doctor, patient, hospital]
+        entity_id:
+          type: integer
+        file_name:
+          type: string
+          example: profile-images/1719771000000-550e8400-e29b-41d4-a716-446655440000.webp
+        original_name:
+          type: string
+          example: avatar.png
+        mime_type:
+          type: string
+          example: image/webp
+        file_size:
+          type: integer
+        file_url:
+          type: string
+          example: /uploads/profile-images/1719771000000-550e8400-e29b-41d4-a716-446655440000.webp
+        upload_type:
+          type: string
+          enum: [profile_image, doctor_image, patient_image, hospital_logo]
+        visibility:
+          type: string
+          enum: [private, staff_only, patient_visible]
+
+paths:
+  /uploads/images:
+    post:
+      tags: [Image Uploads]
+      summary: Upload and process an image
+      description: >
+        Uploads profile images, doctor images, patient images, or hospital logo images.
+        Images are validated, resized, compressed to WebP, stored with unique names, and persisted in the uploads table.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image, image_type, entity_type, entity_id]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                image_type:
+                  type: string
+                  enum: [profile_image, doctor_image, patient_image, hospital_logo]
+                entity_type:
+                  type: string
+                  enum: [user, doctor, patient, hospital]
+                entity_id:
+                  type: integer
+                visibility:
+                  type: string
+                  enum: [private, staff_only, patient_visible]
+      responses:
+        "201":
+          description: Image uploaded successfully
+        "413":
+          description: Image size exceeds configured limit
+        "415":
+          description: Unsupported image type
+  /uploads/images/{id}:
+    patch:
+      tags: [Image Uploads]
+      summary: Replace or update image metadata
+      description: >
+        If an image file is provided, the old physical image is deleted after the database update succeeds.
+        Metadata can also be updated without sending a replacement image.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                image_type:
+                  type: string
+                  enum: [profile_image, doctor_image, patient_image, hospital_logo]
+                entity_type:
+                  type: string
+                  enum: [user, doctor, patient, hospital]
+                entity_id:
+                  type: integer
+                visibility:
+                  type: string
+                  enum: [private, staff_only, patient_visible]
+      responses:
+        "200":
+          description: Image updated successfully
+  /uploads/images/{id}/preview:
+    get:
+      tags: [Image Uploads]
+      summary: Preview an uploaded image
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Image binary preview
+          content:
+            image/webp:
+              schema:
+                type: string
+                format: binary

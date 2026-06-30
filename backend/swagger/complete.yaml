@@ -1,0 +1,1451 @@
+tags:
+  - name: Auth
+    description: Authentication, sessions, password reset, and email verification
+  - name: Users
+    description: User administration
+  - name: Doctors
+    description: Doctor profiles and availability
+  - name: Patients
+    description: Patient registry
+  - name: Appointments
+    description: Appointment scheduling and status
+  - name: Departments
+    description: Hospital departments
+  - name: Medical Records
+    description: Patient medical records
+  - name: Billing
+    description: Invoices and billing records
+  - name: Payments
+    description: Payment collection and reconciliation
+  - name: Medicines
+    description: Pharmacy medicine catalog
+  - name: Prescriptions
+    description: Prescriptions and prescription items
+  - name: Uploads
+    description: Documents and image uploads
+  - name: Notifications
+    description: User notifications
+  - name: Activity Logs
+    description: Audit trail
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Id:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+      example: 1
+    Page:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Limit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    Search:
+      in: query
+      name: search
+      schema:
+        type: string
+      example: maya
+    SortBy:
+      in: query
+      name: sortBy
+      schema:
+        type: string
+        default: id
+      example: created_at
+    SortOrder:
+      in: query
+      name: sortOrder
+      schema:
+        type: string
+        enum: [asc, desc, ASC, DESC]
+        default: desc
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            success: false
+            message: Authentication required
+            errors: []
+    Forbidden:
+      description: Authenticated user does not have required role
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            success: false
+            message: You do not have permission to perform this action
+            errors: []
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            success: false
+            message: Resource not found
+            errors: []
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            success: false
+            message: Validation failed
+            errors:
+              - field: email
+                message: Valid email is required
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            success: false
+            message: Internal server error
+            errors: []
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operation completed successfully
+        data:
+          nullable: true
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+    PaginationMeta:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 20
+        total:
+          type: integer
+          example: 184
+        totalPages:
+          type: integer
+          example: 10
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@hms.com
+        password:
+          type: string
+          format: password
+          example: Admin@12345
+        rememberLogin:
+          type: boolean
+          example: true
+    RegisterRequest:
+      type: object
+      required: [fullName, email, password]
+      properties:
+        fullName:
+          type: string
+          example: Riya Sharma
+        email:
+          type: string
+          format: email
+          example: riya@hms.com
+        phone:
+          type: string
+          example: "+911000000003"
+        password:
+          type: string
+          format: password
+          example: Strong@123
+        role:
+          type: string
+          enum: [Admin, Doctor, Receptionist, Patient]
+          example: Receptionist
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          example: admin@hms.com
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token:
+          type: string
+          example: 7d1f9e8b2f0a4f0d9c2a0d3d5b2e7f0a
+        newPassword:
+          type: string
+          format: password
+          example: NewStrong@123
+        confirmPassword:
+          type: string
+          format: password
+          example: NewStrong@123
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          example: OldStrong@123
+        newPassword:
+          type: string
+          format: password
+          example: NewStrong@123
+    TokenRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+    LogoutRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+        allDevices:
+          type: boolean
+          example: false
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        role_id:
+          type: integer
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+    UserInput:
+      type: object
+      required: [role_id, full_name, email, password]
+      properties:
+        role_id:
+          type: integer
+          example: 2
+        full_name:
+          type: string
+          example: Dr. Arjun Mehta
+        email:
+          type: string
+          format: email
+          example: doctor@hms.com
+        phone:
+          type: string
+          example: "+911000000002"
+        password:
+          type: string
+          format: password
+          example: Doctor@123
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+    DepartmentInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: Cardiology
+        description:
+          type: string
+          example: Heart and cardiovascular care
+        status:
+          type: string
+          enum: [active, inactive]
+          example: active
+    DoctorInput:
+      type: object
+      required: [user_id, department_id, license_number, specialization]
+      properties:
+        user_id:
+          type: integer
+          example: 2
+        department_id:
+          type: integer
+          example: 1
+        license_number:
+          type: string
+          example: MED-DEL-10001
+        specialization:
+          type: string
+          example: Internal Medicine
+        qualification:
+          type: string
+          example: MBBS, MD
+        consultation_fee:
+          type: number
+          example: 800
+        availability_status:
+          type: string
+          enum: [available, unavailable, on_leave]
+          example: available
+    PatientInput:
+      type: object
+      required: [patient_code, full_name, gender, date_of_birth, phone]
+      properties:
+        patient_code:
+          type: string
+          example: PAT-2026-0001
+        full_name:
+          type: string
+          example: Aman Verma
+        gender:
+          type: string
+          enum: [male, female, other]
+        date_of_birth:
+          type: string
+          format: date
+          example: "1998-04-15"
+        blood_group:
+          type: string
+          example: B+
+        phone:
+          type: string
+          example: "+911000000004"
+        email:
+          type: string
+          format: email
+          example: patient@hms.com
+        address:
+          type: string
+    AppointmentInput:
+      type: object
+      required: [patient_id, doctor_id, department_id, appointment_date, start_time, end_time]
+      properties:
+        patient_id:
+          type: integer
+          example: 1
+        doctor_id:
+          type: integer
+          example: 1
+        department_id:
+          type: integer
+          example: 1
+        appointment_date:
+          type: string
+          format: date
+          example: "2026-07-01"
+        start_time:
+          type: string
+          example: "10:00:00"
+        end_time:
+          type: string
+          example: "10:30:00"
+        status:
+          type: string
+          enum: [scheduled, checked_in, in_consultation, completed, cancelled, no_show]
+        reason:
+          type: string
+          example: Fever and headache
+        notes:
+          type: string
+    AppointmentStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [scheduled, checked_in, in_consultation, completed, cancelled, no_show]
+          example: checked_in
+    MedicalRecordInput:
+      type: object
+      required: [patient_id, diagnosis]
+      properties:
+        patient_id:
+          type: integer
+          example: 1
+        doctor_id:
+          type: integer
+          example: 1
+        appointment_id:
+          type: integer
+          example: 1
+        diagnosis:
+          type: string
+          example: Viral fever suspected
+        symptoms:
+          type: string
+        treatment_plan:
+          type: string
+        notes:
+          type: string
+    BillingInput:
+      type: object
+      required: [patient_id, invoice_number, total_amount]
+      properties:
+        patient_id:
+          type: integer
+          example: 1
+        appointment_id:
+          type: integer
+          example: 1
+        invoice_number:
+          type: string
+          example: INV-2026-0001
+        subtotal:
+          type: number
+          example: 800
+        tax_amount:
+          type: number
+          example: 0
+        discount_amount:
+          type: number
+          example: 0
+        total_amount:
+          type: number
+          example: 800
+        paid_amount:
+          type: number
+          example: 0
+        balance_amount:
+          type: number
+          example: 800
+        status:
+          type: string
+          enum: [draft, issued, partially_paid, paid, cancelled, refunded]
+    PaymentInput:
+      type: object
+      required: [billing_id, amount, payment_method]
+      properties:
+        billing_id:
+          type: integer
+          example: 1
+        amount:
+          type: number
+          example: 800
+        payment_method:
+          type: string
+          enum: [cash, card, upi, bank_transfer, insurance]
+          example: upi
+        transaction_reference:
+          type: string
+          example: UPI-HMS-2026-0001
+        status:
+          type: string
+          enum: [pending, successful, failed, refunded]
+    MedicineInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: Paracetamol 500mg
+        generic_name:
+          type: string
+          example: Paracetamol
+        category:
+          type: string
+          example: Analgesic
+        manufacturer:
+          type: string
+        unit_price:
+          type: number
+          example: 2.5
+        stock_quantity:
+          type: integer
+          example: 1000
+        reorder_level:
+          type: integer
+          example: 100
+        expiry_date:
+          type: string
+          format: date
+    PrescriptionInput:
+      type: object
+      required: [patient_id, doctor_id]
+      properties:
+        patient_id:
+          type: integer
+        doctor_id:
+          type: integer
+        appointment_id:
+          type: integer
+        medical_record_id:
+          type: integer
+        instructions:
+          type: string
+    PrescriptionItemInput:
+      type: object
+      required: [prescription_id, medicine_id, dosage, frequency, duration]
+      properties:
+        prescription_id:
+          type: integer
+        medicine_id:
+          type: integer
+        dosage:
+          type: string
+          example: 500mg
+        frequency:
+          type: string
+          example: Twice daily
+        duration:
+          type: string
+          example: 3 days
+        quantity:
+          type: integer
+          example: 6
+        instructions:
+          type: string
+    NotificationInput:
+      type: object
+      required: [user_id, title, message]
+      properties:
+        user_id:
+          type: integer
+          example: 4
+        title:
+          type: string
+          example: Appointment Confirmed
+        message:
+          type: string
+          example: Your appointment has been confirmed.
+        type:
+          type: string
+          enum: [info, success, warning, error, appointment, billing, system]
+        is_read:
+          type: boolean
+    UploadMetadataUpdate:
+      type: object
+      properties:
+        patient_id:
+          type: integer
+        medical_record_id:
+          type: integer
+        visibility:
+          type: string
+          enum: [private, staff_only, patient_visible]
+    ActivityLogInput:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        action:
+          type: string
+          example: create_patient
+        entity_type:
+          type: string
+          example: patients
+        entity_id:
+          type: integer
+        description:
+          type: string
+
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Register a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201": { description: Registration successful }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /auth/login:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Login and receive JWT tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              example:
+                success: true
+                message: Login successful
+                data:
+                  accessToken: eyJhbGciOi...
+                  refreshToken: eyJhbGciOi...
+                  tokenType: Bearer
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /auth/refresh-token:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Rotate refresh token and issue a new access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+      responses:
+        "200": { description: Token refreshed successfully }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /auth/forgot-password:
+    post:
+      tags: [Password Reset]
+      security: []
+      summary: Generate a password reset token and send dummy email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        "200":
+          description: Password reset email generated if account exists
+          content:
+            application/json:
+              example:
+                success: true
+                message: If the email exists, a password reset link has been sent
+                data:
+                  expiresInMinutes: 30
+                  resetToken: dev-only-token
+                  resetUrl: http://localhost:5173/reset-password?token=dev-only-token
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /auth/reset-password:
+    post:
+      tags: [Password Reset]
+      security: []
+      summary: Reset password using a valid reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200": { description: Password reset successfully }
+        "400":
+          description: Invalid or expired reset token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /auth/verify-email:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Verify email using a dummy verification token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+      responses:
+        "200": { description: Email verified successfully }
+  /auth/resend-verification:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Resend dummy email verification token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        "200": { description: Verification token generated if applicable }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get authenticated profile
+      responses:
+        "200": { description: Profile fetched successfully }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /auth/change-password:
+    patch:
+      tags: [Auth]
+      summary: Change password for authenticated user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200": { description: Password changed successfully }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout current session or all devices
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogoutRequest"
+      responses:
+        "200": { description: Logout successful }
+
+  /uploads:
+    get:
+      tags: [Uploads]
+      summary: List uploaded files
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: Upload list fetched successfully }
+    post:
+      tags: [Uploads]
+      summary: Upload a medical report, prescription, bill, or patient document
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                upload_type:
+                  type: string
+                  enum: [medical_report, prescription, bill, patient_document]
+                patient_id:
+                  type: integer
+                medical_record_id:
+                  type: integer
+                visibility:
+                  type: string
+                  enum: [private, staff_only, patient_visible]
+      responses:
+        "201": { description: File uploaded successfully }
+        "413": { description: File size exceeds configured limit }
+        "415": { description: Unsupported file type }
+  /uploads/images:
+    post:
+      tags: [Uploads]
+      summary: Upload, resize, and compress an image
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image, image_type, entity_type, entity_id]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                image_type:
+                  type: string
+                  enum: [profile_image, doctor_image, patient_image, hospital_logo]
+                entity_type:
+                  type: string
+                  enum: [user, doctor, patient, hospital]
+                entity_id:
+                  type: integer
+                visibility:
+                  type: string
+                  enum: [private, staff_only, patient_visible]
+      responses:
+        "201": { description: Image uploaded successfully }
+  /uploads/images/{id}:
+    patch:
+      tags: [Uploads]
+      summary: Replace image or update image metadata
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+                image_type:
+                  type: string
+                  enum: [profile_image, doctor_image, patient_image, hospital_logo]
+                entity_type:
+                  type: string
+                  enum: [user, doctor, patient, hospital]
+                entity_id:
+                  type: integer
+                visibility:
+                  type: string
+                  enum: [private, staff_only, patient_visible]
+      responses:
+        "200": { description: Image updated successfully }
+  /uploads/images/{id}/preview:
+    get:
+      tags: [Uploads]
+      summary: Preview uploaded image
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Image binary
+          content:
+            image/webp:
+              schema:
+                type: string
+                format: binary
+  /uploads/{id}:
+    get:
+      tags: [Uploads]
+      summary: Get upload metadata
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: Upload fetched successfully }
+    patch:
+      tags: [Uploads]
+      summary: Update safe upload metadata
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadMetadataUpdate"
+      responses:
+        "200": { description: Upload metadata updated successfully }
+    delete:
+      tags: [Uploads]
+      summary: Delete upload metadata and physical file
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: File deleted successfully }
+
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      parameters: &listParams
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+      responses:
+        "200": { description: User list fetched successfully }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [Users]
+      summary: Create user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserInput" }
+      responses:
+        "201": { description: User created successfully }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Get user
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: User fetched successfully }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Users]
+      summary: Update user
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserInput" }
+      responses:
+        "200": { description: User updated successfully }
+    delete:
+      tags: [Users]
+      summary: Delete user
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: User deleted successfully }
+
+  /departments:
+    get:
+      tags: [Departments]
+      summary: List departments
+      parameters: *listParams
+      responses:
+        "200": { description: Department list fetched successfully }
+    post:
+      tags: [Departments]
+      summary: Create department
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DepartmentInput" }
+      responses:
+        "201": { description: Department created successfully }
+  /departments/{id}:
+    get:
+      tags: [Departments]
+      summary: Get department
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Department fetched successfully }
+    patch:
+      tags: [Departments]
+      summary: Update department
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DepartmentInput" }
+      responses:
+        "200": { description: Department updated successfully }
+    delete:
+      tags: [Departments]
+      summary: Delete department
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Department deleted successfully }
+
+  /doctors:
+    get:
+      tags: [Doctors]
+      summary: List doctors
+      parameters: *listParams
+      responses:
+        "200": { description: Doctor list fetched successfully }
+    post:
+      tags: [Doctors]
+      summary: Create doctor profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DoctorInput" }
+      responses:
+        "201": { description: Doctor created successfully }
+  /doctors/{id}:
+    get:
+      tags: [Doctors]
+      summary: Get doctor
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Doctor fetched successfully }
+    patch:
+      tags: [Doctors]
+      summary: Update doctor
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DoctorInput" }
+      responses:
+        "200": { description: Doctor updated successfully }
+    delete:
+      tags: [Doctors]
+      summary: Delete doctor
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Doctor deleted successfully }
+
+  /patients:
+    get:
+      tags: [Patients]
+      summary: List patients
+      parameters: *listParams
+      responses:
+        "200": { description: Patient list fetched successfully }
+    post:
+      tags: [Patients]
+      summary: Create patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientInput" }
+      responses:
+        "201": { description: Patient created successfully }
+  /patients/{id}:
+    get:
+      tags: [Patients]
+      summary: Get patient
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Patient fetched successfully }
+    patch:
+      tags: [Patients]
+      summary: Update patient
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PatientInput" }
+      responses:
+        "200": { description: Patient updated successfully }
+    delete:
+      tags: [Patients]
+      summary: Delete patient
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Patient deleted successfully }
+
+  /appointments:
+    get:
+      tags: [Appointments]
+      summary: List appointments
+      parameters: *listParams
+      responses:
+        "200": { description: Appointment list fetched successfully }
+    post:
+      tags: [Appointments]
+      summary: Create appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppointmentInput" }
+      responses:
+        "201": { description: Appointment created successfully }
+        "409":
+          description: Doctor already has an appointment in this time slot
+  /appointments/{id}:
+    get:
+      tags: [Appointments]
+      summary: Get appointment
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Appointment fetched successfully }
+    patch:
+      tags: [Appointments]
+      summary: Update appointment
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppointmentInput" }
+      responses:
+        "200": { description: Appointment updated successfully }
+    delete:
+      tags: [Appointments]
+      summary: Delete appointment
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Appointment deleted successfully }
+  /appointments/{id}/status:
+    patch:
+      tags: [Appointments]
+      summary: Update appointment status
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppointmentStatusInput" }
+      responses:
+        "200": { description: Appointment status updated successfully }
+
+  /medical-records:
+    get:
+      tags: [Medical Records]
+      summary: List medical records
+      parameters: *listParams
+      responses:
+        "200": { description: Medical record list fetched successfully }
+    post:
+      tags: [Medical Records]
+      summary: Create medical record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MedicalRecordInput" }
+      responses:
+        "201": { description: Medical record created successfully }
+  /medical-records/{id}:
+    get:
+      tags: [Medical Records]
+      summary: Get medical record
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Medical record fetched successfully }
+    patch:
+      tags: [Medical Records]
+      summary: Update medical record
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MedicalRecordInput" }
+      responses:
+        "200": { description: Medical record updated successfully }
+    delete:
+      tags: [Medical Records]
+      summary: Delete medical record
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Medical record deleted successfully }
+
+  /billing:
+    get:
+      tags: [Billing]
+      summary: List billing records
+      parameters: *listParams
+      responses:
+        "200": { description: Billing record list fetched successfully }
+    post:
+      tags: [Billing]
+      summary: Create billing record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BillingInput" }
+      responses:
+        "201": { description: Billing record created successfully }
+  /billing/{id}:
+    get:
+      tags: [Billing]
+      summary: Get billing record
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Billing record fetched successfully }
+    patch:
+      tags: [Billing]
+      summary: Update billing record
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BillingInput" }
+      responses:
+        "200": { description: Billing record updated successfully }
+    delete:
+      tags: [Billing]
+      summary: Delete billing record
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Billing record deleted successfully }
+
+  /payments:
+    get:
+      tags: [Payments]
+      summary: List payments
+      parameters: *listParams
+      responses:
+        "200": { description: Payment list fetched successfully }
+    post:
+      tags: [Payments]
+      summary: Create payment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentInput" }
+      responses:
+        "201": { description: Payment created successfully }
+  /payments/{id}:
+    get:
+      tags: [Payments]
+      summary: Get payment
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Payment fetched successfully }
+    patch:
+      tags: [Payments]
+      summary: Update payment
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PaymentInput" }
+      responses:
+        "200": { description: Payment updated successfully }
+    delete:
+      tags: [Payments]
+      summary: Delete payment
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Payment deleted successfully }
+
+  /medicines:
+    get:
+      tags: [Medicines]
+      summary: List medicines
+      parameters: *listParams
+      responses:
+        "200": { description: Medicine list fetched successfully }
+    post:
+      tags: [Medicines]
+      summary: Create medicine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MedicineInput" }
+      responses:
+        "201": { description: Medicine created successfully }
+  /medicines/{id}:
+    get:
+      tags: [Medicines]
+      summary: Get medicine
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Medicine fetched successfully }
+    patch:
+      tags: [Medicines]
+      summary: Update medicine
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/MedicineInput" }
+      responses:
+        "200": { description: Medicine updated successfully }
+    delete:
+      tags: [Medicines]
+      summary: Delete medicine
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Medicine deleted successfully }
+
+  /prescriptions:
+    get:
+      tags: [Prescriptions]
+      summary: List prescriptions
+      parameters: *listParams
+      responses:
+        "200": { description: Prescription list fetched successfully }
+    post:
+      tags: [Prescriptions]
+      summary: Create prescription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PrescriptionInput" }
+      responses:
+        "201": { description: Prescription created successfully }
+  /prescriptions/{id}:
+    get:
+      tags: [Prescriptions]
+      summary: Get prescription
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Prescription fetched successfully }
+    patch:
+      tags: [Prescriptions]
+      summary: Update prescription
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PrescriptionInput" }
+      responses:
+        "200": { description: Prescription updated successfully }
+    delete:
+      tags: [Prescriptions]
+      summary: Delete prescription
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Prescription deleted successfully }
+
+  /prescription-items:
+    get:
+      tags: [Prescriptions]
+      summary: List prescription items
+      parameters: *listParams
+      responses:
+        "200": { description: Prescription item list fetched successfully }
+    post:
+      tags: [Prescriptions]
+      summary: Create prescription item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PrescriptionItemInput" }
+      responses:
+        "201": { description: Prescription item created successfully }
+  /prescription-items/{id}:
+    get:
+      tags: [Prescriptions]
+      summary: Get prescription item
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Prescription item fetched successfully }
+    patch:
+      tags: [Prescriptions]
+      summary: Update prescription item
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PrescriptionItemInput" }
+      responses:
+        "200": { description: Prescription item updated successfully }
+    delete:
+      tags: [Prescriptions]
+      summary: Delete prescription item
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Prescription item deleted successfully }
+
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List notifications
+      parameters: *listParams
+      responses:
+        "200": { description: Notification list fetched successfully }
+    post:
+      tags: [Notifications]
+      summary: Create notification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationInput" }
+      responses:
+        "201": { description: Notification created successfully }
+  /notifications/{id}:
+    get:
+      tags: [Notifications]
+      summary: Get notification
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Notification fetched successfully }
+    patch:
+      tags: [Notifications]
+      summary: Update notification
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationInput" }
+      responses:
+        "200": { description: Notification updated successfully }
+    delete:
+      tags: [Notifications]
+      summary: Delete notification
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Notification deleted successfully }
+
+  /activity-logs:
+    get:
+      tags: [Activity Logs]
+      summary: List activity logs
+      parameters: *listParams
+      responses:
+        "200": { description: Activity log list fetched successfully }
+    post:
+      tags: [Activity Logs]
+      summary: Create activity log
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActivityLogInput" }
+      responses:
+        "201": { description: Activity log created successfully }
+  /activity-logs/{id}:
+    get:
+      tags: [Activity Logs]
+      summary: Get activity log
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Activity log fetched successfully }
+    patch:
+      tags: [Activity Logs]
+      summary: Update activity log
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActivityLogInput" }
+      responses:
+        "200": { description: Activity log updated successfully }
+    delete:
+      tags: [Activity Logs]
+      summary: Delete activity log
+      parameters: [ { $ref: "#/components/parameters/Id" } ]
+      responses:
+        "200": { description: Activity log deleted successfully }

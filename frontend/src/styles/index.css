@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-slate-200 dark:border-white/10;
+  }
+
+  html {
+    @apply bg-slate-50 text-slate-950 antialiased transition-colors duration-300 dark:bg-[#080b12] dark:text-slate-50;
+  }
+
+  body {
+    @apply min-w-80 bg-premium-radial transition-colors duration-300;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply border border-white/50 bg-white/75 shadow-soft backdrop-blur-xl transition-colors duration-300 dark:border-white/10 dark:bg-slate-950/55 dark:shadow-soft-dark;
+  }
+
+  .surface {
+    @apply border bg-white shadow-soft transition-colors duration-300 dark:border-white/10 dark:bg-slate-950/70 dark:shadow-soft-dark;
+  }
+
+  .muted {
+    @apply text-slate-500 dark:text-slate-400;
+  }
+}

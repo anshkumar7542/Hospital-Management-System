@@ -1,0 +1,149 @@
+components:
+  schemas:
+    Upload:
+      type: object
+      properties:
+        id:
+          type: integer
+        patient_id:
+          type: integer
+          nullable: true
+        medical_record_id:
+          type: integer
+          nullable: true
+        uploaded_by:
+          type: integer
+          nullable: true
+        file_name:
+          type: string
+          example: medical-reports/1719771000000-550e8400-e29b-41d4-a716-446655440000.pdf
+        original_name:
+          type: string
+          example: discharge-summary.pdf
+        mime_type:
+          type: string
+          example: application/pdf
+        file_size:
+          type: integer
+          example: 482912
+        file_url:
+          type: string
+          example: /uploads/medical-reports/1719771000000-550e8400-e29b-41d4-a716-446655440000.pdf
+        upload_type:
+          type: string
+          enum: [medical_report, prescription, bill, patient_document]
+        visibility:
+          type: string
+          enum: [private, staff_only, patient_visible]
+        created_at:
+          type: string
+          format: date-time
+    UploadMetadataUpdate:
+      type: object
+      properties:
+        patient_id:
+          type: integer
+          nullable: true
+        medical_record_id:
+          type: integer
+          nullable: true
+        visibility:
+          type: string
+          enum: [private, staff_only, patient_visible]
+
+paths:
+  /uploads:
+    get:
+      tags: [Uploads]
+      summary: List uploaded files
+      description: Supports pagination, search, sorting, and filters such as upload_type, patient_id, medical_record_id, visibility, and created_at_from/to.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/SortBy"
+        - $ref: "#/components/parameters/SortOrder"
+        - in: query
+          name: upload_type
+          schema:
+            type: string
+            enum: [medical_report, prescription, bill, patient_document]
+        - in: query
+          name: patient_id
+          schema:
+            type: integer
+        - in: query
+          name: visibility
+          schema:
+            type: string
+            enum: [private, staff_only, patient_visible]
+      responses:
+        "200":
+          description: Upload list fetched successfully
+    post:
+      tags: [Uploads]
+      summary: Upload a medical file
+      description: >
+        Upload medical reports, prescriptions, bills, or patient documents. Allowed extensions are
+        .pdf, .jpg, .jpeg, .png, .webp, .doc, and .docx. Max size is controlled by MAX_FILE_SIZE_MB.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                upload_type:
+                  type: string
+                  enum: [medical_report, prescription, bill, patient_document]
+                  default: patient_document
+                patient_id:
+                  type: integer
+                medical_record_id:
+                  type: integer
+                visibility:
+                  type: string
+                  enum: [private, staff_only, patient_visible]
+                  default: private
+      responses:
+        "201":
+          description: File uploaded successfully
+        "413":
+          description: File size exceeds configured limit
+        "415":
+          description: Unsupported file type
+  /uploads/{id}:
+    get:
+      tags: [Uploads]
+      summary: Get upload metadata by id
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Upload fetched successfully
+    patch:
+      tags: [Uploads]
+      summary: Update safe upload metadata
+      description: File path, URL, MIME type, size, and original name cannot be modified through this endpoint.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadMetadataUpdate"
+      responses:
+        "200":
+          description: Upload metadata updated successfully
+    delete:
+      tags: [Uploads]
+      summary: Delete upload metadata and physical file
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: File deleted successfully

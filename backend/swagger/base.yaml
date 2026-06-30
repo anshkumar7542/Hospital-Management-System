@@ -1,0 +1,67 @@
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+        "401":
+          description: Invalid credentials
+  /patients:
+    get:
+      tags: [Patients]
+      summary: List patients
+      responses:
+        "200":
+          description: Patients fetched successfully
+    post:
+      tags: [Patients]
+      summary: Create a patient
+      responses:
+        "201":
+          description: Patient created successfully
+  /appointments:
+    get:
+      tags: [Appointments]
+      summary: List appointments
+      responses:
+        "200":
+          description: Appointments fetched successfully
+    post:
+      tags: [Appointments]
+      summary: Create an appointment
+      responses:
+        "201":
+          description: Appointment created successfully
+  /uploads:
+    post:
+      tags: [Uploads]
+      summary: Upload a patient or medical document
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: File uploaded successfully
