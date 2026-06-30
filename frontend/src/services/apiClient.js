@@ -26,7 +26,9 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config || {};
     const status = error.response?.status;
 
-    if (status === 401 && !originalRequest._refreshAttempted) {
+    const isRefreshRequest = originalRequest.url?.includes('/auth/refresh-token');
+
+    if (status === 401 && !originalRequest._refreshAttempted && !isRefreshRequest) {
       originalRequest._refreshAttempted = true;
       const refreshed = await useAuthStore.getState().refreshSession();
       if (refreshed) return apiClient(originalRequest);

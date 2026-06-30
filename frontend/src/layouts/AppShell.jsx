@@ -4,11 +4,14 @@ import { Bell, Command, Menu, Search, Sparkles, UserRound, X } from 'lucide-reac
 import { navItems } from '../data/appData.js';
 import { ThemeToggle } from '../components/ui/ThemeToggle.jsx';
 import { useRealtime } from '../hooks/useRealtime.js';
+import { useAuthStore } from '../store/authStore.js';
 
 export function AppShell() {
   const [open, setOpen] = useState(false);
+  const user = useAuthStore((state) => state.user);
   const { connectionStatus, onlineUsers, notifications, reconnectAttempt, lastError } = useRealtime();
   const isConnected = connectionStatus === 'connected';
+  const displayName = user?.fullName || user?.full_name || user?.name || user?.role || 'Profile';
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 transition-colors duration-300 dark:bg-[#080b12] dark:text-white">
@@ -81,7 +84,7 @@ export function AppShell() {
             <ThemeToggle compact />
             <Link to="/profile" className="hidden h-11 items-center gap-2 rounded-2xl border bg-white px-3 text-sm font-medium shadow-soft dark:border-white/10 dark:bg-white/5 sm:flex">
               <UserRound size={17} />
-              Admin
+              {displayName}
             </Link>
           </div>
         </header>
