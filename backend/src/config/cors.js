@@ -1,5 +1,13 @@
 const env = require('./env');
 
+const normalizeOrigin = (origin) => String(origin || '').trim().replace(/\/$/, '');
+
+const allowedOrigins = new Set(
+  [...env.corsOrigins, env.clientUrl]
+    .map(normalizeOrigin)
+    .filter(Boolean)
+);
+
 const corsOptions = {
   origin(origin, callback) {
     if (env.nodeEnv === 'development') {
@@ -8,11 +16,11 @@ const corsOptions = {
     }
 
     if (!origin) {
-      callback(new Error('Not allowed by CORS'));
+      callback(null, true);
       return;
     }
 
-    if (env.corsOrigins.includes(origin)) {
+    if (allowedOrigins.has(normalizeOrigin(origin))) {
       callback(null, true);
       return;
     }
