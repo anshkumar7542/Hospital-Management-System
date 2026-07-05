@@ -11,6 +11,8 @@ export const resourceEndpoints = {
   departments: '/departments',
   activity: '/activity-logs',
   notifications: '/notifications'
+  ,
+  users: '/users'
 };
 
 export const resourceService = {

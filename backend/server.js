@@ -8,12 +8,31 @@ const { testConnection } = require('./src/config/db');
 const server = http.createServer(app);
 initSocket(server);
 
-const start = async () => {
-  await testConnection();
+const start = async (attempt = 1) => {
+  if (!server.listening) {
+    server.once('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        logger.warn(`Port ${env.port} is already in use; continuing with the existing server`);
+        return;
+      }
 
-  server.listen(env.port, () => {
-    logger.info(`HMS API running on port ${env.port} in ${env.nodeEnv} mode`);
-  });
+      logger.error('Server failed to start', { message: error.message, stack: error.stack });
+      process.exit(1);
+    });
+
+    server.listen(env.port, () => {
+      logger.info(`HMS API running on port ${env.port} in ${env.nodeEnv} mode`);
+    });
+  }
+
+  try {
+    await testConnection();
+  } catch (error) {
+    logger.warn(`Database unavailable, retrying in 5s (attempt ${attempt})`, {
+      message: error.message
+    });
+    setTimeout(() => start(attempt + 1), 5000);
+  }
 };
 
 process.on('unhandledRejection', (error) => {

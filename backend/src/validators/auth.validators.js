@@ -22,7 +22,8 @@ const register = [
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
   body('phone').optional({ nullable: true }).isString().trim(),
   strongPassword('password'),
-  body('role').optional().isIn(allowedRoles).withMessage('Invalid role')
+  // Allow any role string here; service will perform authoritative validation/mapping
+  body('role').optional().isString().trim().withMessage('Invalid role')
 ];
 
 const login = [

@@ -114,6 +114,10 @@ export const tables = {
       ['Radiology', 'Dr. S. Nair', '68%', 'Active']
     ]
   },
+  users: {
+    columns: ['Name', 'Email', 'Role', 'Status'],
+    rows: []
+  },
   activity: {
     columns: ['Action', 'Actor', 'Entity', 'Time'],
     rows: [
@@ -132,8 +136,8 @@ export const notifications = [
 ];
 
 export const settings = [
-  { title: 'Role Based Access', body: 'Manage permissions for Admin, Doctor, Receptionist, and Patient.', icon: ShieldCheck },
-  { title: 'Authentication', body: 'JWT, refresh tokens, password reset, and email verification controls.', icon: LockKeyhole },
-  { title: 'Hospital Profile', body: 'Departments, billing identity, facility preferences, and defaults.', icon: Building2 },
-  { title: 'Clinical Preferences', body: 'Appointment windows, record visibility, alerts, and escalation rules.', icon: HeartPulse }
+  { title: 'Role Based Access', body: 'Manage permissions for Super Admin, Admin, Doctor, Receptionist, Nurse, Patient, Pharmacist, and Lab Technician.', icon: ShieldCheck },
+  { title: 'Authentication', body: 'JWT, HTTP-only cookies, password reset, audit logs, and secure access controls.', icon: LockKeyhole },
+  { title: 'Hospital Profile', body: 'Departments, staff, rooms, beds, consultation fees, lab tests, pharmacy inventory, and resources.', icon: Building2 },
+  { title: 'Clinical Preferences', body: 'Appointment windows, patient records, alerts, discharge workflows, and escalation rules.', icon: HeartPulse }
 ];

@@ -15,6 +15,7 @@ const ForgotPasswordPage = lazyPage(() => import('./pages/AuthPages.jsx'), 'Forg
 const ResetPasswordPage = lazyPage(() => import('./pages/AuthPages.jsx'), 'ResetPasswordPage');
 const DashboardPage = lazyPage(() => import('./pages/DashboardPage.jsx'), 'DashboardPage');
 const ResourcePage = lazyPage(() => import('./pages/ResourcePages.jsx'), 'ResourcePage');
+const AppointmentCreatePage = lazyPage(() => import('./pages/AppointmentCreatePage.jsx'), 'AppointmentCreatePage');
 const SettingsPage = lazyPage(() => import('./pages/ResourcePages.jsx'), 'SettingsPage');
 const ProfilePage = lazyPage(() => import('./pages/ResourcePages.jsx'), 'ProfilePage');
 const NotificationsPage = lazyPage(() => import('./pages/ResourcePages.jsx'), 'NotificationsPage');
@@ -46,8 +47,10 @@ function App() {
             <Route element={<AppShell />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/doctors" element={<ResourcePage type="doctors" />} />
+              <Route path="/users" element={<ResourcePage type="users" />} />
               <Route path="/patients" element={<ResourcePage type="patients" />} />
               <Route path="/appointments" element={<ResourcePage type="appointments" />} />
+              <Route path="/appointments/create" element={<AppointmentCreatePage />} />
               <Route path="/medical-records" element={<ResourcePage type="records" />} />
               <Route path="/billing" element={<ResourcePage type="billing" />} />
               <Route path="/payments" element={<ResourcePage type="payments" />} />

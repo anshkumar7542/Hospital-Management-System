@@ -8,8 +8,8 @@ module.exports = buildCrudRoutes({
   createRules: validators.billing.create,
   updateRules: validators.billing.update,
   roles: {
-    create: authorize('Admin', 'Receptionist'),
-    update: authorize('Admin', 'Receptionist'),
+    create: authorize('Admin', 'Doctor', 'Receptionist', 'Patient'),
+    update: authorize('Admin', 'Doctor', 'Receptionist', 'Patient'),
     delete: authorize('Admin')
   }
 });

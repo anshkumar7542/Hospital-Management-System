@@ -7,6 +7,13 @@ const { authLimiter } = require('../middlewares/rateLimiter.middleware');
 
 const router = express.Router();
 
+router.get('/register', (req, res) => {
+  res.status(405).json({
+    success: false,
+    message: 'Registration requires a POST request',
+    errors: []
+  });
+});
 router.post('/register', authLimiter, validate(validators.register), controller.register);
 router.post('/login', authLimiter, validate(validators.login), controller.login);
 router.post('/refresh-token', authLimiter, validate(validators.refreshToken), controller.refreshToken);

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
 const MAX_RETRIES = 2;
 
 export const apiClient = axios.create({
@@ -48,5 +48,7 @@ apiClient.interceptors.response.use(
 );
 
 export function getApiErrorMessage(error) {
-  return error.response?.data?.message || error.message || 'Something went wrong';
+  const apiData = error.response?.data;
+  const validationError = apiData?.errors?.[0]?.message;
+  return validationError || apiData?.message || error.message || 'Something went wrong';
 }

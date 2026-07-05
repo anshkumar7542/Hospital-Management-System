@@ -83,13 +83,13 @@ const patients = {
 
 const appointments = {
   create: [
-    requiredInt('patient_id'),
-    requiredInt('doctor_id'),
+    body('patient_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid patient_id is required'),
+    body('doctor_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid doctor_id is required'),
     requiredInt('department_id'),
     body('appointment_date').isISO8601().withMessage('Valid appointment_date is required'),
     timeRule('start_time'),
     timeRule('end_time'),
-    body('status').optional().isIn(['scheduled', 'checked_in', 'in_consultation', 'completed', 'cancelled', 'no_show']).withMessage('Invalid appointment status'),
+    body('status').optional().isIn(['pending', 'scheduled', 'checked_in', 'in_consultation', 'completed', 'cancelled', 'no_show']).withMessage('Invalid appointment status'),
     optionalText('reason'),
     optionalText('notes')
   ],
@@ -100,19 +100,20 @@ const appointments = {
     body('appointment_date').optional().isISO8601().withMessage('Valid appointment_date is required'),
     optionalTimeRule('start_time'),
     optionalTimeRule('end_time'),
-    body('status').optional().isIn(['scheduled', 'checked_in', 'in_consultation', 'completed', 'cancelled', 'no_show']).withMessage('Invalid appointment status'),
+    body('status').optional().isIn(['pending', 'scheduled', 'checked_in', 'in_consultation', 'completed', 'cancelled', 'no_show']).withMessage('Invalid appointment status'),
     optionalText('reason'),
     optionalText('notes'),
     optionalText('cancellation_reason')
   ],
   status: [
-    body('status').isIn(['scheduled', 'checked_in', 'in_consultation', 'completed', 'cancelled', 'no_show']).withMessage('Invalid appointment status')
+    body('status').isIn(['pending', 'scheduled', 'checked_in', 'in_consultation', 'completed', 'cancelled', 'no_show']).withMessage('Invalid appointment status'),
+    body('doctor_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid doctor_id is required')
   ]
 };
 
 const medicalRecords = {
   create: [
-    requiredInt('patient_id'),
+    body('patient_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid patient_id is required'),
     body('doctor_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid doctor_id is required'),
     body('appointment_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid appointment_id is required'),
     requiredText('diagnosis', 'Diagnosis is required'),
@@ -133,7 +134,7 @@ const medicalRecords = {
 
 const billing = {
   create: [
-    requiredInt('patient_id'),
+    body('patient_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid patient_id is required'),
     body('appointment_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid appointment_id is required'),
     requiredText('invoice_number', 'Invoice number is required'),
     optionalMoney('subtotal'),
@@ -231,7 +232,11 @@ const notifications = {
 };
 
 const prescriptions = {
-  create: [requiredInt('patient_id'), requiredInt('doctor_id')],
+  create: [
+    body('patient_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid patient_id is required'),
+    body('appointment_id').optional({ nullable: true }).isInt({ min: 1 }).withMessage('Valid appointment_id is required'),
+    requiredInt('doctor_id')
+  ],
   update: [optionalInt('patient_id'), optionalInt('doctor_id'), optionalText('instructions')]
 };
 

@@ -3,7 +3,7 @@ const controller = require('../controllers/user.controller');
 const validators = require('../validators/user.validators');
 const { authorize } = require('../middlewares/auth.middleware');
 
-module.exports = buildCrudRoutes({
+const router = buildCrudRoutes({
   controller,
   createRules: validators.create,
   updateRules: validators.update,
@@ -14,3 +14,10 @@ module.exports = buildCrudRoutes({
     delete: authorize('Admin')
   }
 });
+
+// List pending users for admin approval
+router.get('/pending', authorize('Admin'), controller.pending);
+// Approve a pending user
+router.patch('/:id/approve', authorize('Admin'), controller.approve);
+
+module.exports = router;

@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Plus, Sparkles } from 'lucide-react';
 import { fadeUp } from './MotionPage.jsx';
 
-export function PageHeader({ eyebrow = 'Workspace', title, description, action = 'New record' }) {
+export function PageHeader({ eyebrow = 'Workspace', title, description, action = 'New record', onAction }) {
   return (
     <motion.section
       variants={fadeUp}
@@ -18,7 +18,7 @@ export function PageHeader({ eyebrow = 'Workspace', title, description, action =
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 dark:text-slate-400">{description}</p>
         </div>
         {action && (
-          <button className="inline-flex h-11 w-fit items-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950">
+          <button onClick={onAction} className="inline-flex h-11 w-fit items-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-semibold text-white shadow-soft transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950">
             <Plus size={17} />
             {action}
           </button>

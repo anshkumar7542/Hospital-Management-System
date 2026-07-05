@@ -11,8 +11,11 @@ const validate = (rules) => [
     if (req.file?.path) {
       fs.rm(req.file.path, { force: true }).catch(() => {});
     }
+    // DEBUG: log validation errors for troubleshooting
+    const rawErrors = result.array();
+    console.error('Validation errors:', JSON.stringify(rawErrors));
 
-    const errors = result.array().map((error) => ({
+    const errors = rawErrors.map((error) => ({
       field: error.path,
       message: error.msg
     }));

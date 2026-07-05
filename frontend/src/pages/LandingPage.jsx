@@ -3,9 +3,9 @@ import { motion } from 'framer-motion';
 import { ArrowRight, CalendarDays, ShieldCheck, Sparkles, Stethoscope, WalletCards } from 'lucide-react';
 
 const features = [
-  { title: 'Clinical command center', body: 'Patient flow, appointments, and alerts in one calm workspace.', icon: Stethoscope },
-  { title: 'Secure by design', body: 'Role-aware experiences built for hospital operations.', icon: ShieldCheck },
-  { title: 'Revenue clarity', body: 'Billing, payments, and collection signals without operational noise.', icon: WalletCards }
+  { title: 'Role-based hospital operations', body: 'Super Admin, Admin, Doctors, Nurses, Receptionists, Pharmacists, Lab Techs, and Patients each get the right workspace.', icon: Stethoscope },
+  { title: 'Secure by design', body: 'JWT authentication, role-based authorization, audit logs, and protected routes for every module.', icon: ShieldCheck },
+  { title: 'Complete care management', body: 'Appointments, admissions, pharmacy, lab tests, billing, medical records, and reporting in one platform.', icon: WalletCards }
 ];
 
 export function LandingPage() {
@@ -16,9 +16,9 @@ export function LandingPage() {
           <Sparkles size={15} />
           Modern hospital operations
         </div>
-        <h1 className="text-5xl font-semibold tracking-normal text-slate-950 dark:text-white sm:text-7xl">HelixCare Hospital OS</h1>
+        <h1 className="text-5xl font-semibold tracking-normal text-slate-950 dark:text-white sm:text-7xl">HelixCare HMS</h1>
         <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-400">
-          A premium SaaS workspace for hospitals to coordinate patients, doctors, billing, medicines, records, and operational alerts.
+          A complete hospital management system for modern care delivery, covering appointments, admissions, medical records, pharmacy, lab workflows, billing, analytics, and secure role-based access.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link to="/login" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 font-semibold text-white shadow-soft transition hover:-translate-y-0.5 dark:bg-white dark:text-slate-950">

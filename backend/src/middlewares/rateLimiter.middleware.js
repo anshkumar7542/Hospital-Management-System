@@ -12,6 +12,8 @@ const apiLimiter = rateLimit({
 const authLimiter = rateLimit({
   windowMs: env.rateLimitWindowMs,
   max: env.authRateLimitMax,
+  // In development we skip auth rate limiting to make testing easier
+  skip: () => env.nodeEnv === 'development',
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Too many authentication attempts. Please try again later.' }

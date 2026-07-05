@@ -6,6 +6,7 @@ const { comparePassword, hashPassword } = require('../utils/password');
 const { signAccessToken, signRefreshToken, verifyRefreshToken, hashToken } = require('../utils/token');
 const env = require('../config/env');
 const { sendPasswordResetEmail } = require('./email/dummyEmail.service');
+const { doctors: doctorRepository } = require('../repositories/domain.repositories');
 
 const sanitizeUser = (user) => ({
   id: user.id,
@@ -63,21 +64,63 @@ const issueSession = async (user, { rememberLogin = false, ipAddress = null, use
   };
 };
 
-const register = async ({ fullName, email, phone, password, role = 'Patient' }) => {
-  const existing = await userRepository.findByEmail(email);
+const register = async ({ fullName, email, phone, password, role = 'Patient', licenseNumber, specialization, qualification, consultationFee }) => {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  const existing = await userRepository.findByEmail(normalizedEmail);
   if (existing) throw new ApiError(409, 'Email is already registered');
 
-  const selectedRole = await userRepository.findRoleByName(role);
+  // Map common aliases to canonical role names
+  const aliasMap = {
+    user: 'Patient',
+    patient: 'Patient',
+    admin: 'Admin',
+    doctor: 'Doctor',
+    receptionist: 'Receptionist'
+  };
+  const normalizedRole = typeof role === 'string' ? (aliasMap[role.toLowerCase()] || role) : role;
+
+  let selectedRole = await userRepository.findRoleByName(normalizedRole);
+  console.error('auth.register role debug', { role, normalizedRole, selectedRole });
+  if (!selectedRole) {
+    // Try common variants before failing (case variants, canonical Patient)
+    const candidates = [
+      String(normalizedRole),
+      String(normalizedRole).toLowerCase(),
+      String(normalizedRole).toUpperCase(),
+      'Patient'
+    ];
+    for (const cand of candidates) {
+      selectedRole = await userRepository.findRoleByName(cand);
+      if (selectedRole) break;
+    }
+  }
+
   if (!selectedRole) throw new ApiError(400, 'Invalid role');
 
   const user = await userRepository.create({
     role_id: selectedRole.id,
     full_name: fullName,
-    email,
+    email: normalizedEmail,
     phone: phone || null,
     password_hash: await hashPassword(password),
-    status: 'active'
+    // Status depends on environment flag; allow immediate activation in dev by default
+    // In development, activate immediately to allow testing without admin approval
+    status: env.nodeEnv === 'development' ? 'active' : (env.requireUserApproval ? 'pending' : 'active')
   });
+
+  if (selectedRole.name === 'Doctor') {
+    await doctorRepository.create({
+      user_id: user.id,
+      department_id: null,
+      license_number: String(licenseNumber || '').trim() || `DR-${String(user.id).padStart(4, '0')}`,
+      specialization: String(specialization || '').trim() || 'General Medicine',
+      qualification: String(qualification || '').trim() || 'MBBS',
+      consultation_fee: Number(consultationFee || 0) || 0,
+      availability_status: 'available'
+    });
+  }
+
+  console.error('auth.register created user', user);
 
   const verificationToken = await createEmailVerificationToken(user.id);
   return {

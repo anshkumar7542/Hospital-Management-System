@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { Bell, Command, Menu, Search, Sparkles, UserRound, X } from 'lucide-react';
 import { navItems } from '../data/appData.js';
@@ -12,6 +12,32 @@ export function AppShell() {
   const { connectionStatus, onlineUsers, notifications, reconnectAttempt, lastError } = useRealtime();
   const isConnected = connectionStatus === 'connected';
   const displayName = user?.fullName || user?.full_name || user?.name || user?.role || 'Profile';
+  const normalizedRole = useMemo(() => {
+    const value = String(user?.role_name || user?.role || 'Guest').trim();
+    const lower = value.toLowerCase();
+    if (['super admin', 'super_admin', 'superadmin'].includes(lower)) return 'SuperAdmin';
+    if (['admin', 'administrator'].includes(lower)) return 'Admin';
+    if (['doctor', 'physician'].includes(lower)) return 'Doctor';
+    if (['receptionist', 'frontdesk', 'front_desk'].includes(lower)) return 'Receptionist';
+    if (['nurse', 'nursing'].includes(lower)) return 'Nurse';
+    if (['patient', 'user'].includes(lower)) return 'Patient';
+    if (['pharmacist', 'pharmacy'].includes(lower)) return 'Pharmacist';
+    if (['lab technician', 'lab_technician', 'labtechnician', 'technician'].includes(lower)) return 'LabTechnician';
+    return value || 'Guest';
+  }, [user]);
+  const visibleNavItems = useMemo(() => {
+    const roleItems = {
+      SuperAdmin: navItems,
+      Admin: navItems,
+      Doctor: navItems.filter((item) => ['/dashboard', '/appointments', '/patients', '/medical-records', '/notifications', '/profile'].includes(item.path)),
+      Receptionist: navItems.filter((item) => ['/dashboard', '/appointments', '/patients', '/billing', '/notifications', '/profile'].includes(item.path)),
+      Nurse: navItems.filter((item) => ['/dashboard', '/appointments', '/patients', '/medical-records', '/notifications', '/profile'].includes(item.path)),
+      Patient: navItems.filter((item) => ['/dashboard', '/appointments', '/notifications', '/profile'].includes(item.path)),
+      Pharmacist: navItems.filter((item) => ['/dashboard', '/medicines', '/notifications', '/profile'].includes(item.path)),
+      LabTechnician: navItems.filter((item) => ['/dashboard', '/medical-records', '/notifications', '/profile'].includes(item.path))
+    };
+    return roleItems[normalizedRole] || navItems;
+  }, [normalizedRole]);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-950 transition-colors duration-300 dark:bg-[#080b12] dark:text-white">
@@ -32,7 +58,7 @@ export function AppShell() {
         </div>
 
         <nav className="grid gap-1">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               to={item.path}
               key={item.path}

@@ -56,4 +56,21 @@ const remove = async (id) => {
   await userRepository.updateById(id, { deleted_at: new Date(), status: 'inactive' });
 };
 
+const pendingList = async (query) => {
+  const { page, limit, offset } = getPagination(query);
+  const { rows, total } = await userRepository.list({
+    limit,
+    offset,
+    search: query.search,
+    filters: { ...query, status: 'pending' }
+  });
+  return { rows: rows.map(withoutPassword), meta: paginationMeta(page, limit, total) };
+};
+
+const approve = async (id) => {
+  await get(id);
+  const user = await userRepository.updateById(id, { status: 'active' });
+  return withoutPassword(user);
+};
+
 module.exports = { list, get, create, update, remove };

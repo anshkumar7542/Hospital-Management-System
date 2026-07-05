@@ -5,6 +5,7 @@ const { query } = require('../config/db');
 const { getIo } = require('../config/socket');
 const { SOCKET_EVENTS } = require('../constants/socketEvents');
 const { emitDashboardUpdate, emitToRoles, emitToUser } = require('./realtime/socketEmitter.service');
+const { paginationMeta } = require('../utils/pagination');
 const fs = require('fs/promises');
 const path = require('path');
 const crypto = require('crypto');
@@ -13,6 +14,22 @@ const env = require('../config/env');
 const { uploadTypes } = require('../constants/upload.constants');
 const { imageUploadTypes } = require('../constants/imageUpload.constants');
 const { deleteUploadedFile } = require('../utils/fileStorage');
+
+const resolvePatientIdFromContext = async (payload) => {
+  if (payload?.patient_id) return payload.patient_id;
+
+  if (payload?.appointment_id) {
+    const appointment = await repositories.appointments.findById(payload.appointment_id);
+    if (appointment?.patient_id) return appointment.patient_id;
+  }
+
+  if (payload?.medical_record_id) {
+    const medicalRecord = await repositories.medicalRecords.findById(payload.medical_record_id);
+    if (medicalRecord?.patient_id) return medicalRecord.patient_id;
+  }
+
+  return null;
+};
 
 const services = {
   departments: buildCrudService(repositories.departments, 'Department'),
@@ -31,27 +48,84 @@ const services = {
 
 services.appointments = {
   ...buildCrudService(repositories.appointments, 'Appointment'),
-  async create(payload) {
-    const conflicts = await query(
-      `SELECT id FROM appointments
-       WHERE doctor_id = ? AND appointment_date = ? AND status NOT IN ('cancelled', 'no_show')
-       AND ((start_time < ? AND end_time > ?) OR (start_time < ? AND end_time > ?))
-       LIMIT 1`,
-      [payload.doctor_id, payload.appointment_date, payload.end_time, payload.start_time, payload.start_time, payload.start_time]
-    );
-    if (conflicts.length) throw new ApiError(409, 'Doctor already has an appointment in this time slot');
+  async list(query, user) {
+    const normalizedQuery = { ...query };
+    if (user && user.role === 'Patient') {
+      const { rows: patients } = await repositories.patients.list({ limit: 1, offset: 0, filters: { user_id: user.id } });
+      const patient = patients[0];
+      if (!patient) return { rows: [], meta: paginationMeta(Number(query.page) || 1, Number(query.limit) || 10, 0) };
+      normalizedQuery.patient_id = patient.id;
+    }
 
-    const appointment = await repositories.appointments.create(payload);
+    if (user && user.role === 'Doctor') {
+      const { rows: doctors } = await repositories.doctors.list({ limit: 1, offset: 0, filters: { user_id: user.id } });
+      const doctor = doctors[0];
+      if (!doctor) return { rows: [], meta: paginationMeta(Number(query.page) || 1, Number(query.limit) || 10, 0) };
+      normalizedQuery.doctor_id = doctor.id;
+    }
+
+    return buildCrudService(repositories.appointments, 'Appointment').list(normalizedQuery);
+  },
+  async create(payload, user = null) {
+    const patientId = payload.patient_id || (user?.role === 'Patient' ? (await repositories.patients.list({ limit: 1, offset: 0, filters: { user_id: user.id } })).rows[0]?.id : null);
+    const doctorId = payload.doctor_id || null;
+
+    if (doctorId) {
+      const conflicts = await query(
+        `SELECT id FROM appointments
+         WHERE doctor_id = ? AND appointment_date = ? AND status NOT IN ('cancelled', 'no_show')
+         AND ((start_time < ? AND end_time > ?) OR (start_time < ? AND end_time > ?))
+         LIMIT 1`,
+        [doctorId, payload.appointment_date, payload.end_time, payload.start_time, payload.start_time, payload.start_time]
+      );
+      if (conflicts.length) throw new ApiError(409, 'Doctor already has an appointment in this time slot');
+    }
+
+    const appointment = await repositories.appointments.create({
+      ...payload,
+      patient_id: patientId,
+      doctor_id: doctorId,
+      status: payload.status || 'pending'
+    });
     emitToRoles(['Admin', 'Doctor', 'Receptionist'], SOCKET_EVENTS.APPOINTMENT_CREATED, appointment);
     emitDashboardUpdate('appointment_created', appointment);
     return appointment;
   },
-  async updateStatus(id, status, userId) {
-    const appointment = await repositories.appointments.updateById(id, {
+  async updateStatus(id, payload, userId) {
+    const existing = await repositories.appointments.findById(id);
+    if (!existing) throw new ApiError(404, 'Appointment not found');
+
+    const status = typeof payload === 'string' ? payload : payload?.status;
+    const requestedDoctorId = payload?.doctor_id !== undefined ? payload.doctor_id : null;
+
+    const updates = {
       status,
       cancelled_by: status === 'cancelled' ? userId : undefined,
       cancelled_at: status === 'cancelled' ? new Date() : undefined
-    });
+    };
+
+    if (status === 'scheduled') {
+      if (requestedDoctorId) {
+        updates.doctor_id = requestedDoctorId;
+      } else if (!existing.doctor_id && existing.department_id) {
+        const { rows: doctors } = await repositories.doctors.list({ limit: 100, offset: 0, filters: { department_id: existing.department_id } });
+        for (const doctor of doctors) {
+          const conflicts = await query(
+            `SELECT id FROM appointments
+             WHERE doctor_id = ? AND appointment_date = ? AND id != ? AND status NOT IN ('cancelled', 'no_show')
+             AND ((start_time < ? AND end_time > ?) OR (start_time < ? AND end_time > ?))
+             LIMIT 1`,
+            [doctor.id, existing.appointment_date, existing.id, existing.end_time, existing.start_time, existing.start_time, existing.start_time]
+          );
+          if (!conflicts.length) {
+            updates.doctor_id = doctor.id;
+            break;
+          }
+        }
+      }
+    }
+
+    const appointment = await repositories.appointments.updateById(id, updates);
     emitToRoles(['Admin', 'Doctor', 'Receptionist'], SOCKET_EVENTS.APPOINTMENT_STATUS_CHANGED, appointment);
     emitDashboardUpdate('appointment_status_changed', appointment);
 
@@ -64,6 +138,18 @@ services.appointments = {
   }
 };
 
+services.medicalRecords.create = async (payload) => {
+  const patientId = payload.patient_id || await resolvePatientIdFromContext(payload);
+  if (!patientId) throw new ApiError(400, 'patient_id is required');
+  return repositories.medicalRecords.create({ ...payload, patient_id: patientId });
+};
+
+services.prescriptions.create = async (payload) => {
+  const patientId = payload.patient_id || await resolvePatientIdFromContext(payload);
+  if (!patientId) throw new ApiError(400, 'patient_id is required');
+  return repositories.prescriptions.create({ ...payload, patient_id: patientId });
+};
+
 services.doctors.update = async (id, payload) => {
   const doctor = await repositories.doctors.updateById(id, payload);
   if (payload.availability_status !== undefined) {
@@ -74,7 +160,8 @@ services.doctors.update = async (id, payload) => {
 };
 
 services.billing.create = async (payload) => {
-  const bill = await repositories.billing.create(payload);
+  const patientId = payload.patient_id || await resolvePatientIdFromContext(payload);
+  const bill = await repositories.billing.create({ ...payload, patient_id: patientId });
   emitToRoles(['Admin', 'Receptionist'], SOCKET_EVENTS.BILLING_CREATED, bill);
   emitDashboardUpdate('billing_created', bill);
   return bill;
@@ -110,9 +197,11 @@ services.uploads.createFromFile = async (file, body, userId) => {
   await fs.mkdir(path.dirname(finalPath), { recursive: true });
   await fs.rename(file.path, finalPath);
 
+  const patientId = body.patient_id || await resolvePatientIdFromContext(body);
+
   try {
     return await repositories.uploads.create({
-      patient_id: body.patient_id || null,
+      patient_id: patientId || null,
       medical_record_id: body.medical_record_id || null,
       uploaded_by: userId,
       file_name: relativePath,

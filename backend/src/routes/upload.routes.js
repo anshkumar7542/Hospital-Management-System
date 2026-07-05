@@ -13,7 +13,8 @@ const router = express.Router();
 router.get('/', validate(pagination), controller.list);
 router.post(
   '/images',
-  authorize('Admin', 'Doctor', 'Receptionist'),
+  // allow patients to upload images in development and for app use
+  authorize('Admin', 'Doctor', 'Receptionist', 'Patient'),
   uploadSingleImage,
   validate(imageUploadValidators.createImage),
   controller.createImage
@@ -28,7 +29,8 @@ router.patch(
 );
 router.post(
   '/',
-  authorize('Admin', 'Doctor', 'Receptionist'),
+  // allow patients to upload files/documents
+  authorize('Admin', 'Doctor', 'Receptionist', 'Patient'),
   uploadSingleFile,
   validate(uploadValidators.createUpload),
   controller.create

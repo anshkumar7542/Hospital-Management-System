@@ -103,10 +103,22 @@ export function LoginPage() {
 export function RegisterPage() {
   const pushToast = useToastStore((state) => state.pushToast);
   const register = useAuthStore((state) => state.register);
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', role: 'Patient' });
+  const [form, setForm] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    role: 'Patient',
+    licenseNumber: '',
+    specialization: '',
+    qualification: '',
+    consultationFee: ''
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const onChange = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const onChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
   const onSubmit = async (event) => {
     event.preventDefault();
     setLoading(true);
@@ -137,6 +149,15 @@ export function RegisterPage() {
             <option>Admin</option>
           </select>
         </label>
+        {form.role === 'Doctor' && (
+          <div className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/5">
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Doctor profile details</p>
+            <Field label="License number" name="licenseNumber" value={form.licenseNumber} onChange={onChange} placeholder="DOC-1234" />
+            <Field label="Specialization" name="specialization" value={form.specialization} onChange={onChange} placeholder="General Medicine" />
+            <Field label="Qualification" name="qualification" value={form.qualification} onChange={onChange} placeholder="MBBS" />
+            <Field label="Consultation fee" name="consultationFee" value={form.consultationFee} onChange={onChange} type="number" placeholder="1200" />
+          </div>
+        )}
         <SubmitButton loading={loading}>Register</SubmitButton>
       </form>
     </AuthCard>
