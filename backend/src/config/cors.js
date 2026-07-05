@@ -8,6 +8,13 @@ const allowedOrigins = new Set(
     .filter(Boolean)
 );
 
+const createCorsError = () => {
+  const error = new Error('Not allowed by CORS');
+  error.statusCode = 403;
+  error.isOperational = true;
+  return error;
+};
+
 const corsOptions = {
   origin(origin, callback) {
     if (env.nodeEnv === 'development') {
@@ -25,7 +32,7 @@ const corsOptions = {
       return;
     }
 
-    callback(new Error('Not allowed by CORS'));
+    callback(createCorsError());
   },
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],

@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore.js';
+import { getApiBaseUrl } from '../config/deployment.js';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1';
+const API_BASE_URL = getApiBaseUrl(import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001/api/v1');
 const MAX_RETRIES = 2;
 
 export const apiClient = axios.create({

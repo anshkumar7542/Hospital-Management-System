@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: hms-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_PREFIX
+        value: /api/v1
+      - key: CLIENT_URL
+        value: https://hospital-management-system-six-ruddy.vercel.app
+      - key: CORS_ORIGINS
+        value: https://hospital-management-system-six-ruddy.vercel.app
+      - key: LOG_LEVEL
+        value: info
+      - key: USE_FALLBACK_DB
+        value: "false"

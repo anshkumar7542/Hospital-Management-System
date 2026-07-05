@@ -15,6 +15,24 @@ const routes = require('./routes');
 const app = express();
 
 app.set('trust proxy', 1);
+
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Hospital Management API is healthy',
+    data: { uptime: process.uptime(), timestamp: new Date().toISOString() }
+  });
+});
+
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Hospital Management API',
+    docs: '/api/docs',
+    health: '/health'
+  });
+});
+
 app.use(helmet());
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
@@ -36,14 +54,6 @@ app.use(
 );
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(env.apiPrefix, routes);
-
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Hospital Management API is healthy',
-    data: { uptime: process.uptime(), timestamp: new Date().toISOString() }
-  });
-});
 
 app.use(notFound);
 app.use(errorHandler);
