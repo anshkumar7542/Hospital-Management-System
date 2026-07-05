@@ -334,7 +334,7 @@ export function ResourcePage({ type }) {
   const openAppointmentDetails = async (raw) => {
     if (!raw?.id) return;
     setSelectedAppointment(raw);
-    setPatientProfile(null);
+      setPatientProfile(null);
     setShowPaymentForm(false);
     setUploads([]);
     setActivePatientId(null);
@@ -342,6 +342,12 @@ export function ResourcePage({ type }) {
     setClinicalDraft({ diagnosis: '', symptoms: '', treatment_plan: '', notes: '' });
     setPrescriptionDraft({ instructions: '', medicine_id: '', dosage: '', frequency: '', duration: '', quantity: '1' });
     setPaymentDraft({ amount: raw?.consultation_fee || raw?.amount || '500', payment_method: 'cash', note: raw?.reason || 'Consultation fee' });
+    // Fix: Patient missing when backend payload doesn't include patient_id
+    // We’ll resolve patientId and fetch profile if possible.
+    const rawPatientId = raw?.patient_id ?? raw?.patientId;
+    if (!rawPatientId) {
+      setActivePatientId(await resolvePatientId(raw, raw));
+    }
     setIsLoadingPatient(true);
 
     try {
