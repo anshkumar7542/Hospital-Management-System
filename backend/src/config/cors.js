@@ -8,6 +8,12 @@ const allowedOrigins = new Set(
     .filter(Boolean)
 );
 
+const allowedOriginPatterns = [
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/i,
+  /^http:\/\/localhost:\d+$/i,
+  /^http:\/\/127\.0\.0\.1:\d+$/i
+];
+
 const createCorsError = () => {
   const error = new Error('Not allowed by CORS');
   error.statusCode = 403;
@@ -27,7 +33,9 @@ const corsOptions = {
       return;
     }
 
-    if (allowedOrigins.has(normalizeOrigin(origin))) {
+    const normalizedOrigin = normalizeOrigin(origin);
+
+    if (allowedOrigins.has(normalizedOrigin) || allowedOriginPatterns.some((pattern) => pattern.test(normalizedOrigin))) {
       callback(null, true);
       return;
     }
